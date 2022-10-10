@@ -5,6 +5,7 @@ import businesses
 import pandas as pd
 from typing import List
 
+
 class ReviewGetter:
     def __init__(self, yelp_business: businesses.YelpBusinessInfo):
         self.api_key = "d3b3aeda74cc14d9bca60f2a538dd978a6858ed4"
@@ -28,9 +29,13 @@ class ReviewGetter:
         responses = [self.get_review_response(self.yelp_business.business_url, 1)]
         no_of_pages = responses[0].json()["no_of_pages"]
 
-        print(f"There are {no_of_pages} pages of reviews to iterate over for {self.yelp_business.business_url}")
+        print(
+            f"There are {no_of_pages} pages of reviews to iterate over for {self.yelp_business.business_url}"
+        )
         for page_number in range(no_of_pages, no_of_pages + 1):
-            responses.append(self.get_review_response(self.yelp_business.business_url, page_number))        
+            responses.append(
+                self.get_review_response(self.yelp_business.business_url, page_number)
+            )
 
         return responses
 
@@ -52,7 +57,9 @@ class ReviewGetter:
         review_df = pd.DataFrame()
         responses = self.get_reviews()
 
-        temp_df = pd.concat([pd.json_normalize(response.json()["reviews"]) for response in responses])
+        temp_df = pd.concat(
+            [pd.json_normalize(response.json()["reviews"]) for response in responses]
+        )
         temp_df["business_id"] = self.yelp_business.business_id
         review_df = pd.concat([review_df, temp_df]).reset_index(drop=True)
         review_df = review_df.rename(columns=review_column_rename_mapper)
@@ -67,9 +74,8 @@ addresses = [
 ]
 
 
-
 yelp_business_info = [
-        businesses.get_yelp_business(business_name, address) for address in addresses
-    ]
+    businesses.get_yelp_business(business_name, address) for address in addresses
+]
 
 review_getter = ReviewGetter(yelp_business_info[0])
