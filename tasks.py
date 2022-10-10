@@ -16,14 +16,14 @@ def parse_env(env_check=True):
 @task
 def format(c, check=False):
     if check:
-        c.run("black --check notebooks/ tasks.py")
+        c.run("black --check src/ tasks.py")
     else:
-        c.run("black notebooks/ tasks.py")
+        c.run("black src/ tasks.py")
 
 
 @task
 def lint(c):
-    c.run("flake8 notebooks/ tasks.py")
+    c.run("flake8 src/ tasks.py")
 
 
 @task
