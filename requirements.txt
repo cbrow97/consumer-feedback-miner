@@ -1,0 +1,6 @@
+black==22.3.0
+cryptography==37.0.2
+databricks-cli==0.16.6
+flake8==4.0.1
+invoke==1.7.0
+python-dotenv==0.20.0

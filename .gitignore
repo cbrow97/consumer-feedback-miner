@@ -1,0 +1,14 @@
+__pycache__/
+
+# Dist.
+build/
+dist/
+*.egg-info/
+
+# mypy
+.mypy_cache/
+
+# Coverage reports
+.coverage
+coverage.xml
+.pytest_cache/
