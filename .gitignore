@@ -12,3 +12,7 @@ dist/
 .coverage
 coverage.xml
 .pytest_cache/
+
+#ner model
+model-best/
+model-last/
