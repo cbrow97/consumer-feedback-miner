@@ -4,6 +4,8 @@ import utils
 from collections import namedtuple
 import spacy
 import process_ngrams
+import spacy
+
 
 replace_phrase_info = namedtuple("replace_phrase_info", ["phrase_to_match", "replacement_phrase"])
 
@@ -49,14 +51,9 @@ def run():
     text_df = review_df.merge(text_df, on="review_id")
     text_df["review_month_year"] = pd.to_datetime(text_df["review_date"]) + pd.offsets.MonthBegin(1)
     text_df["review_text_lower"] = text_df["review_text"].str.lower() 
-
+    text_df["review_sentences"] = text_df["review_text"].apply(lambda x: [str(sent) for sent in nlp(x).sents])
     text_df = process_ngrams.run(text_df)
+
+    text_df.to_pickle("cleaned_review_text.pkl")
     return text_df
 
-
-text_df = run()
-#text_df.to_csv("cleaned_review_text.csv", header=True)
-# %%
-text_df["ygfz2VvkgvC9eYxst8hGig"].sentences
-# %%
-text_df.to_pickle("cleaned_review_text.pkl")

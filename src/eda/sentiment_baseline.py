@@ -1,183 +1,9 @@
-# %%
+from sentiment.sentiment_models import VaderSentiment, TextBlobSentiment, RobertaBaseSentiment
 import pandas as pd
-from collections import Counter
-import spacy
-from collections import Counter
-import spacy
-from spacytextblob.spacytextblob import SpacyTextBlob
-from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.metrics import confusion_matrix
-from flair.models import TextClassifier
-from flair.data import Sentence
-
-text_df = pd.read_pickle("/home/ubuntu/consumer-feedback-miner/src/pre_process/cleaned_review_text.pkl")
-
-
-nlp = spacy.load("en_core_web_lg")
-nlp.add_pipe("spacytextblob")
-
-text_df["review_sentences"] = text_df["review_text"].apply(lambda x: [str(sent) for sent in nlp(x).sents])
-
-
-
-# %%
-def get_category_rating(polarity_score):
-    if polarity_score < -0.25:
-        return "negative"
-    elif polarity_score > 0.25:
-        return "positive"
-    else:
-        return "neutral"
-
-def get_flair_category_rating(flair_score):
-    if flair_score < -0.70:
-        return "negative"
-    elif flair_score > 0.70:
-        return "positive"
-    else:
-        return "neutral"
-
-
-# %%
-text_df.drop(index=262, inplace=True)
-# %%
-classifier = TextClassifier.load('en-sentiment')
-# %%
-text = "i am neutral about cheese, it's not good good, it's not great"
-text = Sentence(text)
-classifier.predict(text)
-
-value = text.labels[0].to_dict()['value'] 
-
-# %%
-text.to_dict()["all labels"][0]["confidence"]
-
-# %%
-def get_flair_review_sentence_sentiment(review_sentences):
-    sentence_polarity = []
-    for sent in review_sentences:
-        current_sent = Sentence(sent)
-        classifier.predict(current_sent)
-        try:
-            if current_sent.labels[0].to_dict()['value'] == "POSITIVE":
-                sentence_polarity.append(current_sent.to_dict()["all labels"][0]["confidence"])
-            else:
-                sentence_polarity.append(-1 * current_sent.to_dict()["all labels"][0]["confidence"])
-        except IndexError:
-            pass
-    avg_polarity = np.mean(sentence_polarity)
-    return get_category_rating(avg_polarity)
-
-text_df["flair_sentence_rating"] = text_df["review_sentences"].apply(lambda x: get_flair_review_sentence_sentiment(x))
-
-
-# %%
-def get_textblob_review_sentence_sentiment(review_sentences):
-    sentence_polarity = []
-    for sent in review_sentences:
-        doc = nlp(sent)
-        sentence_polarity.append(doc._.blob.sentiment.polarity)
-    
-    avg_polarity = np.mean(sentence_polarity)
-    return get_category_rating(avg_polarity)
-
-text_df["textblob_sentence_rating"] = text_df["review_sentences"].apply(lambda x: get_textblob_review_sentence_sentiment(x))
-
-# %%
-def get_vader_sentence_sentiment(review_sentences):
-    sentence_polarity = []
-    for sent in review_sentences:
-        sid_obj = SentimentIntensityAnalyzer()
-        sentence_polarity.append(sid_obj.polarity_scores(sent)["compound"])
-    
-    avg_polarity = np.mean(sentence_polarity)
-    return get_category_rating(avg_polarity)
-
-text_df["vader_sentence_rating"] = text_df["review_sentences"].apply(lambda x: get_vader_sentence_sentiment(x))
-
-# %%
-def get_flair_sentiment(review_text):
-    review_text = Sentence(review_text)
-    classifier.predict(review_text)
-
-    if review_text.labels[0].to_dict()['value'] == "POSITIVE":
-        return get_flair_category_rating(review_text.to_dict()["all labels"][0]["confidence"])
-    else:
-        return get_flair_category_rating(-1 * review_text.to_dict()["all labels"][0]["confidence"])
-
-
-text_df["flair_rating"] = text_df["review_text"].apply(lambda x: get_flair_sentiment(x))
-
-# %%
-def get_textblob_sentiment(review_text):
-    doc = nlp(review_text)
-    return get_category_rating(doc._.blob.sentiment.polarity)
-
-text_df["textblob_rating"] = text_df["review_text"].apply(lambda x: get_textblob_sentiment(x))
-
-# %%
-def get_vader_sentiment(review_text):
-    sid_obj = SentimentIntensityAnalyzer()
-    vader_rating = sid_obj.polarity_scores(review_text)["compound"]
-    
-    return get_category_rating(vader_rating)
-
-text_df["vader_rating"] = text_df["review_text"].apply(lambda x: get_vader_sentiment(x))
-
-
-# %%
-labels = ["negative", "positive", "neutral"]
-
-# %%
-cf_flair_sentences = confusion_matrix(text_df["rating_category"], text_df["flair_sentence_rating"], labels=labels)
-
-ax = make_confusion_matrix(cf_flair_sentences)
-ax.set_yticklabels(labels)
-ax.set_xticklabels(labels)
-
-# %%
-cf_vader_sentences = confusion_matrix(text_df["rating_category"], text_df["vader_sentence_rating"], labels=labels)
-
-ax = make_confusion_matrix(cf_vader_sentences)
-ax.set_yticklabels(labels)
-ax.set_xticklabels(labels)
-
-# %%
-cf_vader = confusion_matrix(text_df["rating_category"], text_df["vader_rating"], labels=labels)
-
-ax = make_confusion_matrix(cf_vader)
-ax.set_yticklabels(labels)
-ax.set_xticklabels(labels)
-
-# %%
-cf_textblob = confusion_matrix(text_df["rating_category"], text_df["textblob_rating"], labels=labels)
-
-ax = make_confusion_matrix(cf_textblob)
-ax.set_yticklabels(labels)
-ax.set_xticklabels(labels)
-
-# %%
-cf_flair = confusion_matrix(text_df["rating_category"], text_df["flair_rating"], labels=labels)
-
-ax = make_confusion_matrix(cf_flair)
-ax.set_yticklabels(labels)
-ax.set_xticklabels(labels)
-
-# %%
-from sklearn.metrics import classification_report
-
-print(classification_report(text_df["rating_category"], text_df["vader_rating"]))
-print(classification_report(text_df["rating_category"], text_df["textblob_rating"]))
-
-# %%
-text_df[text_df["rating_category"] == "neutral"]
-# %%
-import numpy as np
-import matplotlib.pyplot as plt
-import seaborn as sns
 
 def make_confusion_matrix(cf,
                           group_names=None,
@@ -190,7 +16,8 @@ def make_confusion_matrix(cf,
                           sum_stats=True,
                           figsize=None,
                           cmap='Blues',
-                          title=None):
+                          title=None,
+                          ax=None):
     '''
     This function will make a pretty plot of an sklearn Confusion Matrix cm using a Seaborn heatmap visualization.
     Arguments
@@ -265,17 +92,50 @@ def make_confusion_matrix(cf,
 
 
     # MAKE THE HEATMAP VISUALIZATION
-    plt.figure(figsize=figsize)
-    ax = sns.heatmap(cf,annot=box_labels,fmt="",cmap=cmap,cbar=cbar,xticklabels=categories,yticklabels=categories)
+    sns.heatmap(cf, annot=box_labels, fmt="", cmap=cmap, cbar=cbar,xticklabels=categories,yticklabels=categories, ax=ax, annot_kws={"size": 16})
 
     if xyplotlabels:
-        plt.ylabel('True label')
-        plt.xlabel('Predicted label' + stats_text)
+        ax.set_ylabel('True label', fontsize=16)
+        ax.set_xlabel('Predicted label' + stats_text, fontsize=16)
     else:
-        plt.xlabel(stats_text)
-    
-    if title:
-        plt.title(title)
+        ax.set_xlabel(stats_text, fontsize=16)
 
-    return ax
+    if title:
+        ax.set_title(title, fontsize=16)
+
+
+text_df = pd.read_pickle("/home/ubuntu/consumer-feedback-miner (new)/src/pre_process/cleaned_review_text.pkl")
+text_df = text_df[["review_text", "review_sentences", "rating_category"]]
+index_to_drop = text_df[text_df["rating_category"] == "negative"].sample(n=492-232).index
+text_df = text_df.drop(index=index_to_drop)
+
+
+models = {
+    "vader": VaderSentiment(),
+    "textblob": TextBlobSentiment(),
+    "bert": RobertaBaseSentiment(),
+}
+
+for model_type, model in models.items():
+    text_df[f"{model_type}_sentiment"] = text_df["review_text"].apply(lambda x: model.predict(x))
+    text_df[f"{model_type}_sentence_sentiment"] = text_df["review_sentences"].apply(lambda x: model.predict_sentences(x))
+
+
+sns.set(font_scale=1.2)
+labels = ['negative', 'positive', 'neutral']
+
+fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(17, 6))
+fig.tight_layout(pad=5)
+
+for model_type, ax in zip(models.keys(), (ax1, ax2, ax3)):
+    cf = confusion_matrix(text_df["rating_category"], text_df[f"{model_type}_sentiment"], labels=labels)
+    make_confusion_matrix(cf, title=f"{model_type.title()} Model Performance", cbar=False, categories=labels, ax=ax)
+
+
+fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(17, 6))
+fig.tight_layout(pad=5)
+
+for model_type, ax in zip(models.keys(), (ax1, ax2, ax3)):
+    cf = confusion_matrix(text_df["rating_category"], text_df[f"{model_type}_sentence_sentiment"], labels=labels)
+    make_confusion_matrix(cf, title=f"{model_type.title()} Model Performance", cbar=False, categories=labels, ax=ax)
 

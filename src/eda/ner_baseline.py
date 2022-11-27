@@ -6,7 +6,7 @@ from collections import Counter
 
 text_df = pd.read_pickle("/home/ubuntu/consumer-feedback-miner/src/pre_process/cleaned_review_text.pkl")
 
-nlp = spacy.load("en_core_web_lg")
+nlp = spacy.load("en_core_web_trf")
 
 doc = nlp(" ".join(text_df["norm_text"]))
 

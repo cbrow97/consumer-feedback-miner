@@ -42,11 +42,11 @@ def add_pytyped_files(
 package_data = add_pytyped_files("src")
 
 setup(
-    name="feedback_miner",
+    name="feedback_analyzer",
     version=version_string,
     author="Colton Brown",
-    description="A package for mining consumer feedback from third party platforms",
-    url="https://https://github.com/cbrow97/consumer-feedback-miner",
+    description="A package for mining and analyzing consumer feedback from third party platforms",
+    url="https://https://github.com/cbrow97/consumer-feedback-analyzer",
     packages=find_packages("src"),
     package_data=package_data,
     package_dir={"": "src"},

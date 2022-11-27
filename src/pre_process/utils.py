@@ -61,7 +61,6 @@ class ProcessedText:
     norm_text: str
     word_tokens: list
     sentence_tokens: list
-    sentences: list
     
     @property
     def word_count(self):
