@@ -16,4 +16,3 @@ entity_baseline_df = pd.DataFrame(
         zip(list(entity_counter.keys()), list(entity_counter.values()))
     ), columns=["entity", "frequency"]
 ).sort_values("frequency", ascending=False)
-
