@@ -4,7 +4,6 @@ import brightloompy.s3 as bpy
 from random import sample, shuffle
 import re
 from typing import Tuple
-import os
 import pandas as pd
 from tqdm import tqdm
 import spacy
@@ -14,6 +13,7 @@ import matplotlib.pyplot as plt
 from random_nouns import noun_list
 from spacy.util import filter_spans
 from food_entity_template_senteces import food_entity_template
+import string
 
 class PrepareEntities:
     def __init__(self, df:pd.DataFrame, field:str, words_in_entity:int):
@@ -94,6 +94,16 @@ def generate_food_entities(entity_template, entitiy_words):
         entities.append(compile_entities(entity_type, filled_sentence, entities_to_fill))
 
     return entities
+
+def remove_punctuation_entities(doc):
+    out = []
+    for ent in doc.ents:
+        if ent[-1].text in string.punctuation:
+            out.append(ent[0:-1])
+        else:
+            out.append(ent)
+    doc.ents = out
+    return doc
 
 
 def generate_blank_entities(entity_template, entitiy_words):
@@ -188,7 +198,6 @@ shuffle(TRAIN_DATA)
 shuffle(TEST_DATA)
 
 
-# %%
 nlp = spacy.load("en_core_web_trf")
 
 create_spacy_data_file(nlp, TRAIN_DATA, save_path="./train.spacy")
@@ -199,6 +208,8 @@ create_spacy_data_file(nlp, TEST_DATA, save_path="./test.spacy")
 
 # %%
 import spacy
+from ner_SERVICE import add_service_ent
+
 nlp = spacy.load("en_core_web_trf")
 food_nlp = spacy.load("./output/model-best")
 
@@ -206,163 +217,9 @@ food_nlp.replace_listeners("tok2vec", "ner", ["model.tok2vec"])
 
 nlp.add_pipe('ner', source=food_nlp, name="food_nlp", after="ner")
 
-
 print(nlp.pipe_names)
-
-# %%
-from ner_SERVICE import add_service_ent
 
 add_service_ent(nlp)
 
-
-# %%
-doc = nlp("The establishment was pretty good")
-print([(ent.text, ent.label_) for ent in doc.ents])
+doc = nlp("Today with Shaq, I had a donut and apple inside a car in Brazil and it was great. The maple syrup was also good. So was the 10  piece chicken meal from Burger Palace.")
 spacy.displacy.render(doc, style="ent", jupyter=True) # display in Jupyter
-
-# %%
-from spacy.tokens import Doc, Span
-doc = nlp("Today with Shaq, I had a donut and apple inside a car in Brazil and it was great. The maple syrup was also good. So was the 10  piece chicken meal from Burger Palace. I also enjoyed the wait staff.")
-#doc = nlp("My husband and I recently dined at Ruby Tuesday, Bay Street, Taunton.")
-spacy.displacy.render(doc, style="ent", jupyter=True) # display in Jupyter
-
-
-
-# %%
-for token in doc:
-    print(token.text)
-
-# %%
-doc[0].vector
-# %%
-for token in doc:
-    print(token, token.pos_,)
-
-# %%
-doc = nlp("Today I went to the Brazil and ate a") # input sample text
-
-spacy.displacy.render(doc, style="ent", jupyter=True) # display in Jupyter
-
-# %%
-TRAIN_DATA = sample(entities, 1500)
-TEST_DATA = [entity for entity in entities if entity not in TRAIN_DATA]
-
-TEST_DATA
-
-# %%
-
-
-# %%
-
-TEST_FOOD_DATA = {
-    "one_food": [entity for entity in food_entities if len(entity[1]["entities"]) == 1],
-    "two_foods": [entity for entity in food_entities if len(entity[1]["entities"]) == 2],
-    "three_foods": [entity for entity in food_entities if len(entity[1]["entities"]) == 3],
-}
-
-
-food_evaluation = {
-    "one_food": {
-        "correct": 0,
-        "total": 0,
-    },
-    "two_foods": {
-        "correct": 0,
-        "total": 0
-    },
-    "three_foods": {
-        "correct": 0,
-        "total": 0
-    }
-}
-
-word_evaluation = {
-    "1_worded_foods": {
-        "correct": 0,
-        "total": 0
-    },
-    "2_worded_foods": {
-        "correct": 0,
-        "total": 0
-    },
-    "3_worded_foods": {
-        "correct": 0,
-        "total": 0
-    }
-}
-
-# loop over data from our test food set (3 keys in total)
-for key in TEST_FOOD_DATA:
-    foods = TEST_FOOD_DATA[key]
-
-    for food in foods:
-        # extract the sentence and correct food entities according to our test data
-        sentence = food[0]
-        entities = food[1]["entities"]
-
-        # for each entity, use our updated model to make a prediction on the sentence
-        for entity in entities:
-            doc = nlp(sentence)
-            correct_text = sentence[entity[0]:entity[1]]
-            n_worded_food =  len(correct_text.split())
-
-            # if we find that there's a match for predicted entity and predicted text, increment correct counters
-            for ent in doc.ents:
-                if ent.label_ == entity[2] and ent.text == correct_text:
-                    food_evaluation[key]["correct"] += 1
-                    if n_worded_food > 0:
-                        word_evaluation[f"{n_worded_food}_worded_foods"]["correct"] += 1
-                    
-                    # this break is important, ensures that we're not double counting on a correct match
-                    break
-            
-            #  increment total counters after each entity loop
-            food_evaluation[key]["total"] += 1
-            if n_worded_food > 0:
-                word_evaluation[f"{n_worded_food}_worded_foods"]["total"] += 1
-
-
-# %%
-for key in word_evaluation:
-    correct = word_evaluation[key]["correct"]
-    total = word_evaluation[key]["total"]
-
-    print(f"{key}: {correct / total * 100:.2f}%")
-
-food_total_sum = 0
-food_correct_sum = 0
-
-print("---")
-for key in food_evaluation:
-    correct = food_evaluation[key]["correct"]
-    total = food_evaluation[key]["total"]
-    
-    food_total_sum += total
-    food_correct_sum += correct
-
-    print(f"{key}: {correct / total * 100:.2f}%")
-
-print(f"\nTotal: {food_correct_sum/food_total_sum * 100:.2f}%")
-
-
-
-# %%
-from spacy.lang.en import English
-import spacy
-nlp = English()
-ruler = nlp.add_pipe("entity_ruler")
-patterns = [{"label": "SERVICE", "pattern": [{"LOWER": "waiter"}]},]
-ruler.add_patterns(patterns)
-
-
-doc = nlp("The Waiter was pretty good")
-print([(ent.text, ent.label_) for ent in doc.ents])
-spacy.displacy.render(doc, style="ent", jupyter=True) # display in Jupyter
-
-# %%
-import spacy
-
-nlp = spacy.load("en_core_web_trf")
-
-# %%
-nlp.pipeline

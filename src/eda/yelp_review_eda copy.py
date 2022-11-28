@@ -80,7 +80,7 @@ for p in ax.patches:
     y = (p.get_height() / 2)
     ax.annotate(percentage + "\n of total", (x, y), ha="center")
 
-ax.set_title("Count of Rating Categories", fontsize=16)
+ax.set_title("Review Count by Rating Category", fontsize=16)
 ax.set_xlabel("Rating Category", fontsize=16)
 ax.set_ylabel("Review Count", fontsize=16)
 ax.tick_params(axis="y", labelsize="16")

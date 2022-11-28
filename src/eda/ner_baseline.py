@@ -1,4 +1,3 @@
-# %%
 import pandas as pd
 from collections import Counter
 import spacy
@@ -18,4 +17,3 @@ entity_baseline_df = pd.DataFrame(
     ), columns=["entity", "frequency"]
 ).sort_values("frequency", ascending=False)
 
-entity_baseline_df
