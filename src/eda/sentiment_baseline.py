@@ -1,3 +1,4 @@
+# %%
 from sentiment.sentiment_models import VaderSentiment, TextBlobSentiment, RobertaBaseSentiment
 import pandas as pd
 import numpy as np
@@ -103,13 +104,41 @@ def make_confusion_matrix(cf,
     if title:
         ax.set_title(title, fontsize=16)
 
-
-text_df = pd.read_pickle("/home/ubuntu/consumer-feedback-miner (new)/src/pre_process/cleaned_review_text.pkl")
+# %%
+text_df = pd.read_pickle("/home/ubuntu/consumer-feedback-analyzer/src/pre_process/cleaned_review_text.pkl")
 text_df = text_df[["review_text", "review_sentences", "rating_category"]]
 index_to_drop = text_df[text_df["rating_category"] == "negative"].sample(n=492-232).index
 text_df = text_df.drop(index=index_to_drop)
 
+# %%
+sentiment_score_mapper = {
+    "negative": "negative",
+    "somewhat negative": "negative",
+    "neutral": "neutral",
+    "somewhat positive": "positive",
+    "positive": "positive",
+}
 
+labels = ['negative', 'positive', 'neutral']
+
+labeled_df = pd.read_csv("labeled_review_sentences.csv")
+labeled_df = labeled_df[~labeled_df["label"].isna()]
+labeled_df["rating_category"] = labeled_df["label"].str.lower().map(sentiment_score_mapper)
+labeled_df["review_sentences"] = labeled_df["review_sentences"].apply(lambda x: x[0:-1].split(','))
+
+# %%
+model = RobertaBaseSentiment()
+model_type = "bert"
+labeled_df[f"{model_type}_sentence_sentiment"] = labeled_df["review_sentences"].apply(lambda x: model.predict_sentences(x))
+
+# %%
+fig, ax1 = plt.subplots(1, 1, figsize=(17, 6))
+fig.tight_layout(pad=5)
+cf = confusion_matrix(labeled_df["rating_category"], labeled_df[f"{model_type}_sentence_sentiment"], labels=labels)
+make_confusion_matrix(cf, title=f"{model_type.title()} Model Performance", cbar=False, categories=labels, ax=ax1)
+
+
+# %%
 models = {
     "vader": VaderSentiment(),
     "textblob": TextBlobSentiment(),

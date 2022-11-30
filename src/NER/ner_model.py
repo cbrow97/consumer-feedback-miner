@@ -221,5 +221,42 @@ print(nlp.pipe_names)
 
 add_service_ent(nlp)
 
+# %%
 doc = nlp("Today with Shaq, I had a donut and apple inside a car in Brazil and it was great. The maple syrup was also good. So was the 10  piece chicken meal from Burger Palace.")
+
+doc = nlp("Today I ordered an apple and the waiter was very attentive.")
+doc = remove_punctuation_entities(doc)
 spacy.displacy.render(doc, style="ent", jupyter=True) # display in Jupyter
+
+# %%
+import pandas as pd
+from collections import Counter
+import spacy
+from collections import Counter
+import string
+
+def remove_punctuation_entities(doc):
+    out = []
+    for ent in doc.ents:
+        if ent[-1].text in string.punctuation:
+            out.append(ent[0:-1])
+        else:
+            out.append(ent)
+    doc.ents = out
+    return doc
+
+text_df = pd.read_pickle("/home/ubuntu/consumer-feedback-miner/src/pre_process/cleaned_review_text.pkl")
+
+doc = nlp(" ".join(text_df["norm_text"]))
+doc = remove_punctuation_entities(doc)
+entity_counter = Counter([word.label_ for word in doc.ents])
+
+entity_baseline_df = pd.DataFrame(
+    data=list(
+        zip(list(entity_counter.keys()), list(entity_counter.values()))
+    ), columns=["entity", "frequency"]
+).sort_values("frequency", ascending=False)
+
+# %%
+entity_baseline_df.to_csv("entities_out.csv")
+
