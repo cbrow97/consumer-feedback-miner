@@ -1,0 +1,6 @@
+cff-version: 1.2.0
+message: "Ner and Sentiment Analysis Study."
+authors:
+  - family-names: Brown
+    given-names: Colton
+title: "Consumer Feedback Analyzer"
